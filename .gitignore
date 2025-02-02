@@ -5,8 +5,8 @@ __pycache__/
 
 # C extensions
 *.so
-# Ignore api_key.txt
-api_key.txt
+# Ignore api key
+.env
 # Distribution / packaging
 .Python
 build/

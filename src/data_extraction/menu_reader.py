@@ -4,6 +4,9 @@ import csv
 import pandas as pd
 import re
 
+
+
+
 def scrape_menu_links(url_list):
     # List to store the scraped data
     menu_data = []
@@ -72,32 +75,33 @@ def save_all_text_from_page(url):
 
 
 
-df = pd.read_csv("brasseries.csv")
+df = pd.read_csv("data/brasseries.csv")
 name = df['name'].to_list()
-links = df['website'].to_list()[:8]
-
-# # Scrape the URLs
+links = df['website'].dropna()
+print(f"From the {df.shape[0]} links, only {len(links)} have urls to a menu/website")
+# Scrape the URLs
 menu_info = scrape_menu_links(links)
-menu_links = []
-for link in menu_info:
-    url = link['url']
-    broken = url.split(".")[:3]
-    index = 2 if len(broken) == 3 else 1
-    domain = "." + broken[index].split("/")[0]
-    body = ".".join(broken[:index])
-    base = body + domain
-    menu = link['menu_link']
-    if menu and 'http' not in menu:
-        menu_url = base + menu
-        menu_links.append(menu_url)
+print(len(menu_info))
+# menu_links = []
+# for link in menu_info:
+#     url = link['url']
+#     broken = url.split(".")[:3]
+#     index = 2 if len(broken) == 3 else 1
+#     domain = "." + broken[index].split("/")[0]
+#     body = ".".join(broken[:index])
+#     base = body + domain
+#     menu = link['menu_link']
+#     if menu and 'http' not in menu:
+#         menu_url = base + menu
+#         menu_links.append(menu_url)
 
 
-print(len(menu_links))
-test = menu_links[0]
+# print(len(menu_links))
+# test = menu_links[0]
 
-stuff = []
-for link in menu_links:
-    info = save_all_text_from_page(link)
-    stuff.append(info)
+# stuff = []
+# for link in menu_links:
+#     info = save_all_text_from_page(link)
+#     stuff.append(info)
 
-print(stuff[0])
+# print(f"From those {len(links)} urls, only {} have been scrapped")

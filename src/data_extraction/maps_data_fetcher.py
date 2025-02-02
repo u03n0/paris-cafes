@@ -4,6 +4,7 @@ import time
 import csv
 import re
 
+
 API = open("api_key.txt", "r")
 API_KEY = API.read()
 

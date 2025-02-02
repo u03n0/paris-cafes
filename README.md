@@ -1,1 +1,1 @@
-# paris-map
+# paris-cafes

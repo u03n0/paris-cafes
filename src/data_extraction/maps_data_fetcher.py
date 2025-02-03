@@ -3,10 +3,12 @@ import requests
 import time
 import csv
 import re
+import os
+from dotenv import load_dotenv
 
 
-API = open("api_key.txt", "r")
-API_KEY = API.read()
+load_dotenv()
+API_KEY = os.getenv('GOOGLE_API_KEY')
 
 maps = googlemaps.Client(API_KEY)
 

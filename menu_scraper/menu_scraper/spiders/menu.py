@@ -1,48 +1,103 @@
 import scrapy
 import pandas as pd
+from collections import defaultdict
 
 
-
-def get_urls(path='../data/brasseries.csv'):
+def get_urls(path='../data/interim/brasseries_w_link.csv'):
     """ Returns url links acquired during Google Maps API calls """
     df = pd.read_csv(path)
     return df['website'].dropna().to_list()
     
+def fix_link(link, response):
+    if link:
+        if "@" in link:
+            return None
+        if 'http' not in link:
+            base_url = response.url
+            if not base_url.endswith("/"):
+                base_url = base_url + "/"
+            if link.startswith("/"):
+                link = link.strip("/")
+                return base_url + link
+    else:
+        return link
+
 class MenuSpider(scrapy.Spider):
     name = "menu"
     start_urls = get_urls()
-    keywords = ['la carte', 'le menu', 'menu', 'carte']
-
+    keywords = ['la carte', 'le menu', 'menu', 'carte', 'pdf']
+    
+    def get_matches(self, tag):
+        attr = ""
+        url = tag.xpath("./@href").get()
+        attr = attr + url if url else attr
+        tag_text = tag.xpath("normalize-space(text())").get()
+        attr = attr + tag_text if tag_text else attr
+        tag_id = tag.xpath("./@id").get()
+        attr = attr + tag_id if tag_id else attr
+        tag_class = tag.xpath("./@class").get()
+        attr = attr + tag_class if tag_class else attr
+        if attr:
+            if any(keyword in attr for keyword in self.keywords) and url:
+                return url
+        return None
 
     def parse(self, response):
-        matching_links = []
+        htmls = []
+        possible_matches = []
+        pdfs = []
+        images = []
+        a_tags = response.xpath("//a")
 
-        # Look for all the 'a' tags on the page
-        links = response.xpath('//a')
-        
-        for link in links:
-            # Check the text of the link
-            link_text = link.xpath('normalize-space(text())').get().lower()
-            for keyword in self.keywords:
-                if keyword in link_text:
-                    url = link.xpath("./@href").get()
-                    if url not in matching_links:
-                        matching_links.append(url)
-            # # Check the class and id attributes for the keywords
-            # link_class = link.attrib.get('class', '').lower()
-            # link_id = link.attrib.get('id', '').lower()
+        for a_tag in a_tags:
+            link = a_tag.xpath("./@href").get()
+            if link:
+                if link and '.pdf' in link and link not in pdfs:
+                    pdfs.append(link)
+                elif link and ('.jpg' in link or '.jpeg' in link or '.png' in link) and link not in images:
+                    images.append(link)
+                elif link and link not in htmls:
+                    htmls.append(link)
+        yield {
+                "website": response.url,
+                "htmls": htmls,
+                "pdfs": pdfs,
+                "images": images
+                }
 
-            # # Check if any of the keywords appear in the link's text, class, or ID
-            # if any(keyword.lower() in (link_text or '') for keyword in self.keywords) or \
-            #    any(keyword.lower() in link_class for keyword in self.keywords) or \
-            #    any(keyword.lower() in link_id for keyword in self.keywords):
-                
-            #     # If the link matches the criteria, add it to the list
-            #     matching_links.append(link.attrib.get('href'))
 
-        # If there are matching links, yield them to be processed
-        if matching_links:
-            yield {
-                'url': response.url,
-                'matching_links': matching_links
-            }
+            
+    def parse_deeper(self, response):
+        website = ""
+        for k,v in self.dic.items():
+            if response.url in v:
+                website = k 
+
+        if website:
+            self.dic2[website]
+            possible_matches = []
+            try:
+                a_tags = response.xpath("//a")
+                for a_tag in a_tags:
+                    attr = ""
+                    url = a_tag.xpath("./@href").get()
+                    attr = attr + url if url else attr
+                    a_tag_text = a_tag.xpath("normalize-space(text())").get()
+                    attr = attr + a_tag_text if a_tag_text else attr
+                    tag_id = a_tag.xpath("./@id").get()
+                    attr = attr + tag_id if tag_id else attr
+                    tag_class = a_tag.xpath("./@class").get()
+                    attr = attr + tag_class if tag_class else attr
+                    if attr:
+                        if any(keyword in attr for keyword in self.keywords) and url not in possible_matches and url:
+                            possible_matches.append(url)
+                            self.dic2[website].append(url)
+                yield {"website": website,
+                                    "possible_matches": possible_matches}
+
+
+
+            except:
+                self.dic2[website].append(response.url)
+                yield {"website": website,
+                       "possible_matches": response.url}
